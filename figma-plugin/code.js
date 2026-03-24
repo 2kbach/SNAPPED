@@ -303,6 +303,29 @@ async function buildNode(node, offsetX, offsetY) {
   const isTextNode = node.textContent && node.children.length === 0;
 
   if (isTextNode) {
+    // Check if the text element has a visible background (e.g. badge/chip)
+    const bgColor = parseColor(s.backgroundColor);
+    const hasVisibleBg = bgColor && !isTransparent(bgColor);
+
+    if (hasVisibleBg) {
+      // Wrap text in a frame so the background renders
+      const frame = figma.createFrame();
+      frame.name = node.tag + ` "${node.textContent.substring(0, 20)}"`;
+      frame.x = x;
+      frame.y = y;
+      frame.resize(w, h);
+      applyFills(frame, s);
+      applyBorder(frame, s);
+      applyCornerRadius(frame, s);
+      applyEffects(frame, s);
+      applyOpacity(frame, s);
+      frame.clipsContent = false;
+
+      const textChild = await buildTextNode(node, 0, 0, w, h);
+      if (textChild) frame.appendChild(textChild);
+      return frame;
+    }
+
     return await buildTextNode(node, x, y, w, h, offsetX, offsetY);
   }
 
