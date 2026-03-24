@@ -98,22 +98,41 @@ function splitValues(str) {
 
 // ── Font Mapping ───────────────────────────────────────────
 
-function parseFontFamily(css) {
-  if (!css) return 'Inter';
-  const first = css.split(',')[0].trim().replace(/["']/g, '');
-  const map = {
-    '-apple-system': 'Inter',
-    'BlinkMacSystemFont': 'Inter',
-    'system-ui': 'Inter',
-    'Segoe UI': 'Inter',
+/**
+ * Parse CSS font-family into a list of families to try, in order.
+ * Returns array of family names — the original font first, then fallbacks.
+ */
+function parseFontFamilies(css) {
+  if (!css) return ['Inter'];
+
+  // Only map generic CSS keywords and system font aliases
+  const genericMap = {
+    '-apple-system': 'SF Pro Text',
+    'BlinkMacSystemFont': 'SF Pro Text',
+    'system-ui': 'SF Pro Text',
     'sans-serif': 'Inter',
     'serif': 'Georgia',
-    'monospace': 'Roboto Mono',
-    'Helvetica Neue': 'Inter',
-    'Helvetica': 'Inter',
-    'Arial': 'Inter'
+    'monospace': 'Roboto Mono'
   };
-  return map[first] || first;
+
+  // Parse all families from the CSS value
+  const families = css.split(',').map(f => f.trim().replace(/["']/g, ''));
+
+  // Build ordered candidate list: original names first, mapped generics, then Inter
+  const candidates = [];
+  for (const f of families) {
+    const mapped = genericMap[f];
+    if (mapped) {
+      if (!candidates.includes(mapped)) candidates.push(mapped);
+    } else if (f && !candidates.includes(f)) {
+      candidates.push(f);
+    }
+  }
+
+  // Always have Inter as ultimate fallback
+  if (!candidates.includes('Inter')) candidates.push('Inter');
+
+  return candidates;
 }
 
 function fontWeightToStyle(weight, italic) {
@@ -126,20 +145,37 @@ function fontWeightToStyle(weight, italic) {
   return italic === 'italic' ? name + ' Italic' : name;
 }
 
-async function loadFont(family, style) {
-  const candidates = [
-    { family, style },
-    { family, style: 'Regular' },
-    { family: 'Inter', style },
-    { family: 'Inter', style: 'Regular' }
-  ];
+/**
+ * Try to load the exact font. Tries each family from the CSS font-family list,
+ * with multiple style name variations, before falling back to Inter.
+ */
+async function loadFont(families, style) {
+  // If families is a string (legacy), convert to array
+  if (typeof families === 'string') families = [families, 'Inter'];
 
-  for (const font of candidates) {
-    try {
-      await figma.loadFontAsync(font);
-      return font;
-    } catch (e) {
-      // try next
+  // Style variations to try for each family (fonts name styles inconsistently)
+  const styleVariations = [
+    style,
+    'Regular',
+    style.replace('SemiBold', 'Semibold'),
+    style.replace('ExtraBold', 'Extrabold'),
+    style.replace('ExtraLight', 'Extralight'),
+    'Medium',
+    'Book',
+    'Roman'
+  ];
+  // Deduplicate
+  const uniqueStyles = [...new Set(styleVariations)];
+
+  for (const family of families) {
+    for (const s of uniqueStyles) {
+      try {
+        const font = { family, style: s };
+        await figma.loadFontAsync(font);
+        return font;
+      } catch (e) {
+        // try next
+      }
     }
   }
 
@@ -328,9 +364,9 @@ async function buildTextNode(node, x, y, w, h) {
   const text = node.textContent;
   if (!text) return null;
 
-  const family = parseFontFamily(s.fontFamily);
+  const families = parseFontFamilies(s.fontFamily);
   const style = fontWeightToStyle(s.fontWeight, s.fontStyle);
-  const loadedFont = await loadFont(family, style);
+  const loadedFont = await loadFont(families, style);
 
   const textNode = figma.createText();
   textNode.fontName = loadedFont;
