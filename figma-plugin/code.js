@@ -325,9 +325,12 @@ async function buildNode(node, offsetX, offsetY) {
       const padTop = parseFloat(s.paddingTop) || 0;
       const padLeft = parseFloat(s.paddingLeft) || 0;
       const innerW = w - padLeft - (parseFloat(s.paddingRight) || 0);
-      const innerH = h - padTop - (parseFloat(s.paddingBottom) || 0);
-      const textChild = await buildTextNode(node, padLeft, padTop, Math.max(innerW, 1), Math.max(innerH, 1));
-      if (textChild) frame.appendChild(textChild);
+      const textChild = await buildTextNode(node, padLeft, padTop, Math.max(innerW, 1), 0);
+      if (textChild) {
+        // Let text auto-size height inside the badge frame
+        textChild.textAutoResize = 'WIDTH_AND_HEIGHT';
+        frame.appendChild(textChild);
+      }
       return frame;
     }
 
