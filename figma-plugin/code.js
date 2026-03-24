@@ -430,9 +430,12 @@ async function buildTextNode(node, x, y, w, h) {
     textNode.characters = text.replace(/\b\w/g, c => c.toUpperCase());
   }
 
-  // Resize to width constraint
-  if (w > 0) {
-    textNode.resize(w, Math.max(h, fontSize * 1.5));
+  // Resize to exact bounds from the browser — no auto-resize
+  if (w > 0 && h > 0) {
+    textNode.resize(w, h);
+    textNode.textAutoResize = 'NONE';
+  } else if (w > 0) {
+    textNode.resize(w, fontSize * 1.5);
     textNode.textAutoResize = 'HEIGHT';
   }
 
