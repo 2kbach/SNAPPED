@@ -303,7 +303,7 @@ async function buildNode(node, offsetX, offsetY) {
   const isTextNode = node.textContent && node.children.length === 0;
 
   if (isTextNode) {
-    return await buildTextNode(node, x, y, w, h);
+    return await buildTextNode(node, x, y, w, h, offsetX, offsetY);
   }
 
   // Create a frame for container nodes
@@ -369,7 +369,14 @@ async function buildNode(node, offsetX, offsetY) {
 
 // ── Text Node Builder ──────────────────────────────────────
 
-async function buildTextNode(node, x, y, w, h) {
+async function buildTextNode(node, x, y, w, h, parentOffsetX, parentOffsetY) {
+  // Use precise textBounds Y position only (keeps element width to prevent wrapping)
+  // Add 2px to compensate for Figma's internal text leading vs browser Range bounds
+  if (node.textBounds && parentOffsetX !== undefined) {
+    y = (node.textBounds.y - parentOffsetY) + 2;
+  } else if (node.textBounds) {
+    y = node.textBounds.y + 2;
+  }
   const s = node.computedStyles;
   const text = node.textContent;
   if (!text) return null;
