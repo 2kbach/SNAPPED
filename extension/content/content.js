@@ -65,11 +65,12 @@
     if (!statusBar) return;
     const count = selectedElements.length;
     statusBar.innerHTML = `
-      <span style="font-weight:600;">SNAPPED</span>
-      <span>Click to select</span>
-      <kbd>Shift</kbd> multi-select
-      <kbd>Esc</kbd> cancel
-      <span class="snapped-count">${count} selected</span>
+      <span class="snapped-label">SNAPPED</span>
+      <span class="snapped-separator"></span>
+      <span class="snapped-hint">Click to select</span>
+      <kbd>⇧</kbd><span class="snapped-hint">multi</span>
+      <kbd>⎋</kbd><span class="snapped-hint">cancel</span>
+      <span class="snapped-count">${count}</span>
       ${count > 0 ? '<button id="snapped-done-btn">Done</button>' : ''}
     `;
 

@@ -1,77 +1,113 @@
-/* SNAPPED element selector overlay styles */
+/* SNAPPED element selector overlay styles — Apple native look */
 
 .snapped-hover-outline {
-  outline: 2px solid #4A90FF !important;
+  outline: 2px solid rgba(0, 122, 255, 0.8) !important;
   outline-offset: -1px !important;
   cursor: crosshair !important;
 }
 
 .snapped-selected-outline {
-  outline: 2px solid #FF6B35 !important;
+  outline: 2px solid rgba(0, 122, 255, 1) !important;
   outline-offset: -1px !important;
+  box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.15) !important;
 }
 
 .snapped-tooltip {
   position: fixed;
   z-index: 2147483647;
-  background: #1a1a2e;
-  color: #fff;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Mono", Monaco, monospace;
+  background: rgba(30, 30, 30, 0.9);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  color: rgba(255, 255, 255, 0.9);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
   font-size: 11px;
+  font-weight: 400;
   padding: 4px 8px;
-  border-radius: 4px;
+  border-radius: 6px;
+  border: 0.5px solid rgba(255, 255, 255, 0.15);
   pointer-events: none;
   white-space: nowrap;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
   line-height: 1.4;
 }
 
 .snapped-status-bar {
   position: fixed;
-  bottom: 16px;
+  bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 2147483647;
-  background: #1a1a2e;
-  color: #fff;
-  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  background: rgba(40, 40, 40, 0.85);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+  color: rgba(255, 255, 255, 0.9);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
   font-size: 13px;
-  padding: 8px 16px;
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  font-weight: 400;
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 0.5px solid rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.35),
+    0 1px 3px rgba(0, 0, 0, 0.15);
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+}
+
+.snapped-status-bar .snapped-label {
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: -0.2px;
+}
+
+.snapped-status-bar .snapped-separator {
+  width: 1px;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.snapped-status-bar .snapped-hint {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 12px;
 }
 
 .snapped-status-bar kbd {
-  background: rgba(255, 255, 255, 0.15);
-  padding: 2px 6px;
-  border-radius: 3px;
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.1);
+  border: 0.5px solid rgba(255, 255, 255, 0.2);
+  padding: 1px 5px;
+  border-radius: 4px;
   font-size: 11px;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Mono", Monaco, monospace;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  font-weight: 500;
+  line-height: 1.4;
 }
 
 .snapped-status-bar .snapped-count {
-  background: #FF6B35;
+  background: rgba(0, 122, 255, 0.9);
   color: #fff;
-  padding: 2px 8px;
-  border-radius: 10px;
-  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 100px;
+  font-weight: 500;
   font-size: 12px;
+  letter-spacing: -0.1px;
 }
 
 .snapped-status-bar button {
-  background: #4A90FF;
-  color: #fff;
+  background: rgba(255, 255, 255, 0.9);
+  color: rgba(0, 0, 0, 0.85);
   border: none;
-  padding: 4px 12px;
-  border-radius: 4px;
+  padding: 5px 14px;
+  border-radius: 100px;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  letter-spacing: -0.1px;
+  transition: background 0.1s ease;
 }
 
 .snapped-status-bar button:hover {
-  background: #357AE8;
+  background: rgba(255, 255, 255, 1);
 }
