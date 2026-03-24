@@ -173,14 +173,38 @@ const SnappedExtractor = (function() {
   function extractPseudoElement(element, pseudo, rootOffset, parentRect) {
     const computed = window.getComputedStyle(element, pseudo);
     const content = computed.content;
+    const display = computed.display;
 
-    // Skip if no content or content is "none" / ""
-    if (!content || content === 'none' || content === '""' || content === "''") {
+    // Skip if truly no pseudo-element (content must be set for it to render)
+    if (!content || content === 'none') {
       return null;
     }
 
+    // For empty content pseudo-elements (content: ""), check if they have
+    // visible styles (background, border, dimensions) — these are decorative elements
+    // like divider lines, overlays, etc.
+    const isEmptyContent = content === '""' || content === "''";
+    if (isEmptyContent && display === 'none') {
+      return null;
+    }
+    if (isEmptyContent) {
+      const bg = computed.backgroundColor;
+      const bgImg = computed.backgroundImage;
+      const w = parseFloat(computed.width) || 0;
+      const h = parseFloat(computed.height) || 0;
+      const hasBorder = parseFloat(computed.borderTopWidth) > 0 ||
+                        parseFloat(computed.borderBottomWidth) > 0;
+      const hasBackground = bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent';
+      const hasBackgroundImage = bgImg && bgImg !== 'none';
+
+      // Skip if the pseudo-element has no visible rendering
+      if (!hasBackground && !hasBackgroundImage && !hasBorder && (w === 0 || h === 0)) {
+        return null;
+      }
+    }
+
     // Clean content string (remove quotes)
-    let textContent = content.replace(/^["']|["']$/g, '');
+    let textContent = isEmptyContent ? null : content.replace(/^["']|["']$/g, '');
     if (textContent === '') textContent = null;
 
     return {
