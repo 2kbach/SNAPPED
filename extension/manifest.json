@@ -3,7 +3,7 @@
   "name": "SNAPPED",
   "version": "0.1",
   "description": "Select UI elements and recreate them perfectly in Figma",
-  "permissions": ["activeTab"],
+  "permissions": ["activeTab", "downloads"],
   "action": {
     "default_popup": "popup/popup.html",
     "default_icon": {

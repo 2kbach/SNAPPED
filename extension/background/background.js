@@ -1,7 +1,7 @@
 /**
  * SNAPPED - Background Service Worker
  * Relays messages between popup and content scripts.
- * Stores extracted data temporarily.
+ * Auto-saves extracted data as a JSON file for Claude Code to read.
  */
 
 let extractedData = null;
@@ -20,6 +20,10 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
     case 'selectionComplete':
       // Store the extracted data
       extractedData = message.data;
+
+      // Auto-save to Downloads as snapped-latest.json
+      saveToFile(extractedData);
+
       // Notify popup if it's open
       browser.runtime.sendMessage({
         type: 'extractionReady',
@@ -43,3 +47,21 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
       break;
   }
 });
+
+function saveToFile(data) {
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+
+  browser.downloads.download({
+    url: url,
+    filename: 'snapped-latest.json',
+    conflictAction: 'overwrite',
+    saveAs: false
+  }).then(() => {
+    URL.revokeObjectURL(url);
+  }).catch(err => {
+    console.error('SNAPPED: Failed to save file', err);
+    URL.revokeObjectURL(url);
+  });
+}

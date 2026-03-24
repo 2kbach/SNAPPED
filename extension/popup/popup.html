@@ -8,12 +8,12 @@
   <div class="popup-container">
     <div class="header">
       <h1>SNAPPED</h1>
-      <span class="version">v0.1</span>
+      <span class="version">v0.2</span>
     </div>
 
     <!-- Initial state -->
     <div id="state-idle" class="state">
-      <p class="description">Select UI elements from any webpage and export them to Figma.</p>
+      <p class="description">Select UI elements from any webpage and send them straight to Figma via Claude Code.</p>
       <button id="btn-start" class="btn-primary">Start Selection</button>
     </div>
 
@@ -31,9 +31,8 @@
         <p id="element-count">0 elements captured</p>
         <p id="source-url" class="source-url"></p>
       </div>
-      <button id="btn-copy" class="btn-primary">Copy to Clipboard</button>
-      <p class="hint">Paste into the SNAPPED Figma plugin to create your design.</p>
-      <div id="copy-success" class="copy-success" style="display:none;">Copied!</div>
+      <div class="saved-notice">Saved to Downloads/snapped-latest.json</div>
+      <p class="hint">Go to Claude Code and say <strong>"snap it"</strong> to build it in Figma.</p>
       <button id="btn-reset" class="btn-secondary">Start Over</button>
     </div>
   </div>

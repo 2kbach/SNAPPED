@@ -11,11 +11,9 @@
   const stateReady = document.getElementById('state-ready');
 
   const btnStart = document.getElementById('btn-start');
-  const btnCopy = document.getElementById('btn-copy');
   const btnReset = document.getElementById('btn-reset');
   const elementCount = document.getElementById('element-count');
   const sourceUrl = document.getElementById('source-url');
-  const copySuccess = document.getElementById('copy-success');
 
   let currentData = null;
 
@@ -40,33 +38,6 @@
     showState(stateSelecting);
     // Close popup so user can interact with the page
     setTimeout(() => window.close(), 300);
-  });
-
-  // Copy to clipboard
-  btnCopy.addEventListener('click', async () => {
-    if (!currentData) return;
-
-    const json = JSON.stringify(currentData, null, 2);
-
-    try {
-      await navigator.clipboard.writeText(json);
-      copySuccess.style.display = 'block';
-      btnCopy.textContent = 'Copied!';
-      setTimeout(() => {
-        copySuccess.style.display = 'none';
-        btnCopy.textContent = 'Copy to Clipboard';
-      }, 2000);
-    } catch (e) {
-      // Fallback
-      const textarea = document.createElement('textarea');
-      textarea.value = json;
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand('copy');
-      textarea.remove();
-      copySuccess.style.display = 'block';
-      setTimeout(() => { copySuccess.style.display = 'none'; }, 2000);
-    }
   });
 
   // Reset

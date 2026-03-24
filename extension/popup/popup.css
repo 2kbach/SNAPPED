@@ -115,12 +115,12 @@ body {
   word-break: break-all;
 }
 
-.copy-success {
+.saved-notice {
   text-align: center;
   color: #22c55e;
   font-weight: 600;
   font-size: 12px;
-  margin-top: 6px;
+  margin-bottom: 8px;
 }
 
 .state {
