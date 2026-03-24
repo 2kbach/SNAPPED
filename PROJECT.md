@@ -44,6 +44,7 @@ The Figma REST API is read-only for file contents, so a companion Figma Plugin (
 - ✅ 2026-03-24 08:15 — v0.4.4: Fixed shadow effects validation — added required blendMode property.
 - ✅ 2026-03-24 08:20 — v0.4.5: Added install-fonts.sh for woff2→ttf conversion. Plugin UI shows terminal command.
 - ✅ 2026-03-24 08:35 — v0.4.6: Fixed obfuscated font names. Netflix strips name tables (replaces with ".") — install script now patches proper family/style names. Netflix Sans fully working in Figma.
+- ✅ 2026-03-24 08:39 — v0.4.7: Added date/time stamp to Figma frame names (YYYY-MM-DD HH:MM).
 
 ## Case Study
 
