@@ -268,5 +268,115 @@ const SnappedExtractor = (function() {
     });
   }
 
-  return { extract, extractWithOffset, detectZoom, imageToBase64 };
+  /**
+   * Extract all @font-face declarations from the page's stylesheets.
+   * Returns array of { family, style, weight, url, format }
+   */
+  function extractFonts() {
+    const fonts = [];
+    const seen = new Set();
+
+    try {
+      for (const sheet of document.styleSheets) {
+        try {
+          const rules = sheet.cssRules || sheet.rules;
+          if (!rules) continue;
+
+          for (const rule of rules) {
+            if (rule instanceof CSSFontFaceRule || (rule.type === 5)) {
+              const family = rule.style.getPropertyValue('font-family').replace(/["']/g, '').trim();
+              const weight = rule.style.getPropertyValue('font-weight') || '400';
+              const style = rule.style.getPropertyValue('font-style') || 'normal';
+              const src = rule.style.getPropertyValue('src') || rule.cssText;
+
+              // Extract URL from src
+              const urlMatch = src.match(/url\(["']?(https?:\/\/[^"')]+)["']?\)/);
+              if (!urlMatch) continue;
+
+              const url = urlMatch[1];
+              const key = `${family}-${weight}-${style}`;
+              if (seen.has(key)) continue;
+              seen.add(key);
+
+              // Detect format
+              const formatMatch = src.match(/format\(["']?(\w+)["']?\)/);
+              const format = formatMatch ? formatMatch[1] : (url.includes('.woff2') ? 'woff2' : 'woff');
+
+              fonts.push({ family, weight, style, url, format });
+            }
+          }
+        } catch (e) {
+          // Cross-origin stylesheet, can't read rules
+        }
+      }
+    } catch (e) {
+      // Stylesheet access error
+    }
+
+    return fonts;
+  }
+
+  /**
+   * Download a font file and return as base64 data URL
+   */
+  async function downloadFontAsBase64(url) {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(blob);
+      });
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /**
+   * Extract fonts used by the selected elements and download them
+   */
+  async function extractUsedFonts(elements) {
+    // Get all font families used in the selected elements
+    const usedFamilies = new Set();
+    function collectFonts(node) {
+      if (!node || !node.computedStyles) return;
+      const ff = node.computedStyles.fontFamily;
+      if (ff) {
+        ff.split(',').forEach(f => {
+          const clean = f.trim().replace(/["']/g, '');
+          if (clean) usedFamilies.add(clean);
+        });
+      }
+      (node.children || []).forEach(collectFonts);
+    }
+    elements.forEach(collectFonts);
+
+    // Get all available @font-face declarations
+    const allFonts = extractFonts();
+
+    // Filter to only fonts used in the selection
+    const usedFonts = allFonts.filter(f => usedFamilies.has(f.family));
+
+    // Download each font as base64
+    const fontsWithData = [];
+    for (const font of usedFonts) {
+      const dataUrl = await downloadFontAsBase64(font.url);
+      if (dataUrl) {
+        fontsWithData.push({
+          family: font.family,
+          weight: font.weight,
+          style: font.style,
+          format: font.format,
+          dataUrl: dataUrl,
+          originalUrl: font.url
+        });
+      }
+    }
+
+    return fontsWithData;
+  }
+
+  return { extract, extractWithOffset, detectZoom, imageToBase64, extractUsedFonts };
 })();

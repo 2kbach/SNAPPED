@@ -5,6 +5,13 @@ figma.showUI(__html__, { width: 360, height: 480 });
 figma.ui.onmessage = async (msg) => {
   if (msg.type === 'build') {
     try {
+      // Check for embedded fonts and notify UI to offer downloads
+      if (msg.data.fonts && msg.data.fonts.length > 0) {
+        figma.ui.postMessage({
+          type: 'fontsFound',
+          fonts: msg.data.fonts
+        });
+      }
       await buildDesign(msg.data);
     } catch (e) {
       figma.ui.postMessage({ type: 'error', message: e.message || String(e) });

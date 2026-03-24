@@ -75,6 +75,11 @@
 
   <button class="btn btn-primary" id="btn-build">Build in Figma</button>
 
+  <div id="font-section" style="display:none; margin-top:10px;">
+    <div style="font-weight:600; font-size:11px; margin-bottom:6px;">Fonts captured:</div>
+    <div id="font-list"></div>
+  </div>
+
   <div class="status" id="status"></div>
 
   <script>
@@ -129,6 +134,8 @@
 
       if (msg.type === 'progress') {
         showStatus(msg.message, 'info');
+      } else if (msg.type === 'fontsFound') {
+        showFonts(msg.fonts);
       } else if (msg.type === 'done') {
         showStatus('Done! Created ' + msg.count + ' element(s) from ' + msg.sourceUrl, 'success');
         btnBuild.disabled = false;
@@ -139,6 +146,42 @@
         btnBuild.textContent = 'Build in Figma';
       }
     };
+
+    function showFonts(fonts) {
+      const section = document.getElementById('font-section');
+      const list = document.getElementById('font-list');
+      section.style.display = 'block';
+
+      // Group by family
+      const families = {};
+      fonts.forEach(f => {
+        if (!families[f.family]) families[f.family] = [];
+        families[f.family].push(f);
+      });
+
+      list.innerHTML = '';
+      for (const [family, variants] of Object.entries(families)) {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex; justify-content:space-between; align-items:center; padding:4px 0; border-bottom:1px solid #eee;';
+        row.innerHTML = `
+          <span style="font-size:11px;"><strong>${family}</strong> (${variants.length} variant${variants.length > 1 ? 's' : ''})</span>
+          <button class="btn-font-dl" style="background:#4A90FF;color:#fff;border:none;padding:3px 8px;border-radius:4px;font-size:10px;cursor:pointer;">Install</button>
+        `;
+        row.querySelector('.btn-font-dl').addEventListener('click', () => {
+          variants.forEach(v => {
+            // Convert base64 data URL to downloadable file
+            const a = document.createElement('a');
+            a.href = v.dataUrl;
+            const ext = v.format === 'woff2' ? 'woff2' : (v.format === 'woff' ? 'woff' : 'ttf');
+            a.download = `${v.family}-${v.weight}-${v.style}.${ext}`;
+            a.click();
+          });
+          row.querySelector('.btn-font-dl').textContent = 'Downloaded!';
+          row.querySelector('.btn-font-dl').style.background = '#22c55e';
+        });
+        list.appendChild(row);
+      }
+    }
 
     function showStatus(message, type) {
       status.textContent = message;

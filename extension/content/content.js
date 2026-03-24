@@ -185,14 +185,13 @@
     browser.runtime.sendMessage({ type: 'selectionCancelled' });
   }
 
-  function finishSelection() {
+  async function finishSelection() {
     if (selectedElements.length === 0) {
       cancelSelection();
       return;
     }
 
     // Detect browser zoom level
-    // getBoundingClientRect() includes zoom, offsetWidth doesn't
     const zoomFactor = SnappedExtractor.detectZoom();
 
     // Calculate a shared root offset from ALL selected elements
@@ -205,7 +204,7 @@
     }
     const sharedOffset = { x: minX, y: minY };
 
-    // Extract DOM data using the shared offset so positions are correct relative to each other
+    // Extract DOM data using the shared offset
     const extractions = selectedElements.map(el => {
       return SnappedExtractor.extractWithOffset(el, sourceUrl, sharedOffset, zoomFactor);
     });
@@ -214,10 +213,14 @@
     clearAllSelections();
     cleanup();
 
+    // Extract and download fonts used in the selection
+    const fonts = await SnappedExtractor.extractUsedFonts(extractions);
+
     const payload = {
       sourceUrl: sourceUrl,
       pageTitle: document.title,
       elements: extractions,
+      fonts: fonts,
       timestamp: new Date().toISOString()
     };
 
