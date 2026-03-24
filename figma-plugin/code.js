@@ -239,6 +239,20 @@ async function buildNode(node, offsetX, offsetY) {
     }
   }
 
+  // Handle <img> tags — render as rectangle with image fill
+  if (node.tag === 'img' && node.images && node.images.length > 0) {
+    const imgData = node.images[0];
+    const imgSrc = imgData.src || imgData.url;
+    if (imgSrc) {
+      try {
+        const imgNode = await buildImageNode(imgSrc, x, y, w, h, s);
+        if (imgNode) return imgNode;
+      } catch (e) {
+        // Fall through to frame
+      }
+    }
+  }
+
   // Determine if this is a text-only node
   const isTextNode = node.textContent && node.children.length === 0;
 
@@ -263,6 +277,25 @@ async function buildNode(node, offsetX, offsetY) {
 
   // Do NOT use auto-layout — we have exact pixel positions from the browser.
   // Auto-layout fights with absolute positioning and causes stacking.
+
+  // Handle background images on frames
+  if (node.images && node.images.length > 0) {
+    for (const img of node.images) {
+      const imgSrc = img.src || img.url;
+      if (imgSrc && img.type === 'background') {
+        try {
+          const image = await figma.createImageAsync(imgSrc);
+          frame.fills = [...(frame.fills || []), {
+            type: 'IMAGE',
+            scaleMode: 'FILL',
+            imageHash: image.hash
+          }];
+        } catch (e) {
+          // Image fetch failed, skip
+        }
+      }
+    }
+  }
 
   // If frame has text content AND children, add text as first child
   if (node.textContent && node.children.length > 0) {
@@ -362,6 +395,51 @@ async function buildTextNode(node, x, y, w, h) {
   return textNode;
 }
 
+// ── Image Node Builder ─────────────────────────────────────
+
+async function buildImageNode(src, x, y, w, h, s) {
+  try {
+    const image = await figma.createImageAsync(src);
+    const rect = figma.createRectangle();
+    rect.name = 'img';
+    rect.x = x;
+    rect.y = y;
+    rect.resize(w, h);
+    rect.fills = [{
+      type: 'IMAGE',
+      scaleMode: 'FILL',
+      imageHash: image.hash
+    }];
+
+    // Apply corner radius (for rounded avatars)
+    if (s) {
+      const tl = parseFloat(s.borderTopLeftRadius) || 0;
+      const tr = parseFloat(s.borderTopRightRadius) || 0;
+      const br = parseFloat(s.borderBottomRightRadius) || 0;
+      const bl = parseFloat(s.borderBottomLeftRadius) || 0;
+      if (tl === tr && tr === br && br === bl) {
+        rect.cornerRadius = tl;
+      } else {
+        rect.topLeftRadius = tl;
+        rect.topRightRadius = tr;
+        rect.bottomRightRadius = br;
+        rect.bottomLeftRadius = bl;
+      }
+    }
+
+    return rect;
+  } catch (e) {
+    // If image can't be fetched, create a placeholder
+    const rect = figma.createRectangle();
+    rect.name = 'img (failed to load)';
+    rect.x = x;
+    rect.y = y;
+    rect.resize(w, h);
+    rect.fills = [{ type: 'SOLID', color: { r: 0.85, g: 0.85, b: 0.85 } }];
+    return rect;
+  }
+}
+
 // ── Style Application ──────────────────────────────────────
 
 function applyFills(node, s) {
@@ -396,15 +474,39 @@ function applyBorder(node, s) {
   const colors = sides.map(side => parseColor(s[`border${side}Color`]));
   const styles = sides.map(side => s[`border${side}Style`]);
 
-  // Use top border as representative
-  if (widths[0] > 0 && styles[0] !== 'none' && colors[0] && !isTransparent(colors[0])) {
+  // Find the first side that has a visible border
+  let strokeColor = null;
+  let strokeWeight = 0;
+  let hasIndividualBorders = false;
+
+  for (let i = 0; i < 4; i++) {
+    if (widths[i] > 0 && styles[i] !== 'none' && colors[i] && !isTransparent(colors[i])) {
+      if (!strokeColor) {
+        strokeColor = colors[i];
+        strokeWeight = widths[i];
+      }
+      hasIndividualBorders = true;
+    }
+  }
+
+  if (strokeColor) {
     node.strokes = [{
       type: 'SOLID',
-      color: { r: colors[0].r, g: colors[0].g, b: colors[0].b },
-      opacity: colors[0].a
+      color: { r: strokeColor.r, g: strokeColor.g, b: strokeColor.b },
+      opacity: strokeColor.a
     }];
-    node.strokeWeight = widths[0];
     node.strokeAlign = 'INSIDE';
+
+    // If borders differ per side, use individual stroke weights
+    const allSame = widths.every(w => w === widths[0]);
+    if (!allSame && 'strokeTopWeight' in node) {
+      node.strokeTopWeight = widths[0];
+      node.strokeRightWeight = widths[1];
+      node.strokeBottomWeight = widths[2];
+      node.strokeLeftWeight = widths[3];
+    } else {
+      node.strokeWeight = strokeWeight;
+    }
   }
 }
 
