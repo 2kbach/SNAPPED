@@ -39,6 +39,13 @@ const SnappedExtractor = (function() {
     return walkNode(element, rootOffset, 0);
   }
 
+  /**
+   * Extract using a shared offset (so multiple elements keep correct relative positions)
+   */
+  function extractWithOffset(element, sourceUrl, sharedOffset) {
+    return walkNode(element, sharedOffset, 0);
+  }
+
   function walkNode(element, rootOffset, depth) {
     if (depth > MAX_DEPTH) return null;
     if (!element || element.nodeType !== Node.ELEMENT_NODE) return null;
@@ -221,5 +228,5 @@ const SnappedExtractor = (function() {
     });
   }
 
-  return { extract, imageToBase64 };
+  return { extract, extractWithOffset, imageToBase64 };
 })();

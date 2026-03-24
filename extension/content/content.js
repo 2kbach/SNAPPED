@@ -191,10 +191,19 @@
       return;
     }
 
-    // Extract DOM data for each selected element
+    // Calculate a shared root offset from ALL selected elements
     const sourceUrl = window.location.href;
+    let minX = Infinity, minY = Infinity;
+    for (const el of selectedElements) {
+      const rect = el.getBoundingClientRect();
+      minX = Math.min(minX, rect.left);
+      minY = Math.min(minY, rect.top);
+    }
+    const sharedOffset = { x: minX, y: minY };
+
+    // Extract DOM data using the shared offset so positions are correct relative to each other
     const extractions = selectedElements.map(el => {
-      return SnappedExtractor.extract(el, sourceUrl);
+      return SnappedExtractor.extractWithOffset(el, sourceUrl, sharedOffset);
     });
 
     clearHover();
