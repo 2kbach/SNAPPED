@@ -41,6 +41,9 @@ The Figma REST API is read-only for file contents, so a companion Figma Plugin (
 - ✅ 2026-03-24 07:45 — v0.4.1: Fixed cross-origin font extraction. Fetches CSS text directly instead of relying on CSSOM. Netflix Sans now captured successfully.
 - ✅ 2026-03-24 07:55 — v0.4.2: Captures ALL page fonts, not just fonts used in selected elements. Netflix Sans installed to ~/Library/Fonts/ via woff2→ttf conversion.
 - ✅ 2026-03-24 08:10 — v0.4.3: Redesigned status bar and overlays to match Apple native UI. Frosted glass, system blue, symbol glyphs, pill buttons.
+- ✅ 2026-03-24 08:15 — v0.4.4: Fixed shadow effects validation — added required blendMode property.
+- ✅ 2026-03-24 08:20 — v0.4.5: Added install-fonts.sh for woff2→ttf conversion. Plugin UI shows terminal command.
+- ✅ 2026-03-24 08:35 — v0.4.6: Fixed obfuscated font names. Netflix strips name tables (replaces with ".") — install script now patches proper family/style names. Netflix Sans fully working in Figma.
 
 ## Case Study
 
@@ -59,6 +62,8 @@ Hit three interesting bugs in succession: (1) All elements stacked at origin bec
 Font extraction was its own challenge. First attempt used `document.styleSheets` CSSOM API, but Netflix loads fonts from cross-origin CDN (`assets.nflxext.com`), which blocks `cssRules` access. Solution: fetch the CSS file text directly from the content script (which can fetch any URL the page loaded) and parse `@font-face` blocks with regex. Downloaded woff2 files are embedded as base64 in the JSON. Since macOS can't install woff2 directly, converted to ttf using `fonttools` Python library.
 
 Tested on Netflix Account Profiles page — captures profile avatars (with rounded corners), section headers, card containers with rounded borders, divider lines, chevron SVGs, and Netflix Sans fonts. The end-to-end flow works: Safari extension → JSON file → Figma plugin → pixel-accurate UI recreation with correct fonts.
+
+Font name obfuscation turned out to be a fascinating problem. Netflix's woff2 files contain 1228 real glyphs with valid character maps, but the `name` table is stripped to just `.` — making the fonts invisible to Font Book and Figma. Solution: detect single-character names in the `name` table and patch with proper family/style/PostScript names derived from the CSS `@font-face` weight declarations. This is now automated in `install-fonts.sh` and works for any site that obfuscates font names.
 
 ## Feature Parking Lot
 - **2026-03-23** — Cloud relay via `snapped.kevinauerbach.com` for seamless Safari→Figma transfer without clipboard *(suggested by Claude)*
