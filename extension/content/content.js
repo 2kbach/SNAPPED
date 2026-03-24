@@ -201,16 +201,37 @@
     clearAllSelections();
     cleanup();
 
-    // Send extracted data back
+    const payload = {
+      sourceUrl: sourceUrl,
+      pageTitle: document.title,
+      elements: extractions,
+      timestamp: new Date().toISOString()
+    };
+
+    // Auto-save JSON file via download link
+    saveJsonFile(payload);
+
+    // Send extracted data to background/popup
     browser.runtime.sendMessage({
       type: 'selectionComplete',
-      data: {
-        sourceUrl: sourceUrl,
-        pageTitle: document.title,
-        elements: extractions,
-        timestamp: new Date().toISOString()
-      }
+      data: payload
     });
+  }
+
+  function saveJsonFile(data) {
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'snapped-latest.json';
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
   }
 
   function cleanup() {
