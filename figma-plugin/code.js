@@ -261,10 +261,8 @@ async function buildNode(node, offsetX, offsetY) {
   applyOpacity(frame, s);
   frame.clipsContent = (s.overflow === 'hidden' || s.overflowX === 'hidden' || s.overflowY === 'hidden');
 
-  // Apply auto-layout if flex
-  if (s.display === 'flex' || s.display === 'inline-flex') {
-    applyAutoLayout(frame, s);
-  }
+  // Do NOT use auto-layout — we have exact pixel positions from the browser.
+  // Auto-layout fights with absolute positioning and causes stacking.
 
   // If frame has text content AND children, add text as first child
   if (node.textContent && node.children.length > 0) {
@@ -275,11 +273,12 @@ async function buildNode(node, offsetX, offsetY) {
     if (textChild) frame.appendChild(textChild);
   }
 
-  // Build children
+  // Build children — position relative to this frame's top-left
   for (const child of node.children) {
     if (!child) continue;
     if (child.bounds.width === 0 && child.bounds.height === 0) continue;
 
+    // Pass parent's absolute position as offset so children are relative to parent
     const childNode = await buildNode(child, b.x, b.y);
     if (childNode) {
       frame.appendChild(childNode);
