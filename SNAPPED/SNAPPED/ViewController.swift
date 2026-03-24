@@ -9,7 +9,7 @@ import Cocoa
 import SafariServices
 import WebKit
 
-let extensionBundleIdentifier = "com.kevinauerbach.snapped.Extension"
+let extensionBundleIdentifier = "com.kevinauerbach.SNAPPED.Extension"
 
 class ViewController: NSViewController, WKNavigationDelegate, WKScriptMessageHandler {
 
