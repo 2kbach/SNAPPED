@@ -269,51 +269,119 @@ const SnappedExtractor = (function() {
   }
 
   /**
-   * Extract all @font-face declarations from the page's stylesheets.
-   * Returns array of { family, style, weight, url, format }
+   * Extract @font-face declarations using multiple strategies:
+   * 1. document.styleSheets API (fails on cross-origin)
+   * 2. Fetch cross-origin stylesheet text and parse manually
+   * 3. document.fonts API for loaded font metadata
    */
-  function extractFonts() {
+  async function extractFonts() {
     const fonts = [];
     const seen = new Set();
 
+    // Strategy 1: Read same-origin stylesheets via CSSOM
     try {
       for (const sheet of document.styleSheets) {
         try {
           const rules = sheet.cssRules || sheet.rules;
           if (!rules) continue;
-
           for (const rule of rules) {
             if (rule instanceof CSSFontFaceRule || (rule.type === 5)) {
-              const family = rule.style.getPropertyValue('font-family').replace(/["']/g, '').trim();
-              const weight = rule.style.getPropertyValue('font-weight') || '400';
-              const style = rule.style.getPropertyValue('font-style') || 'normal';
-              const src = rule.style.getPropertyValue('src') || rule.cssText;
-
-              // Extract URL from src
-              const urlMatch = src.match(/url\(["']?(https?:\/\/[^"')]+)["']?\)/);
-              if (!urlMatch) continue;
-
-              const url = urlMatch[1];
-              const key = `${family}-${weight}-${style}`;
-              if (seen.has(key)) continue;
-              seen.add(key);
-
-              // Detect format
-              const formatMatch = src.match(/format\(["']?(\w+)["']?\)/);
-              const format = formatMatch ? formatMatch[1] : (url.includes('.woff2') ? 'woff2' : 'woff');
-
-              fonts.push({ family, weight, style, url, format });
+              const font = parseFontFaceRule(rule.cssText);
+              if (font && !seen.has(font.key)) {
+                seen.add(font.key);
+                fonts.push(font);
+              }
             }
           }
         } catch (e) {
-          // Cross-origin stylesheet, can't read rules
+          // Cross-origin — try Strategy 2
+          if (sheet.href) {
+            try {
+              const resp = await fetch(sheet.href);
+              const cssText = await resp.text();
+              const parsed = parseFontFacesFromCSS(cssText, sheet.href);
+              for (const font of parsed) {
+                if (!seen.has(font.key)) {
+                  seen.add(font.key);
+                  fonts.push(font);
+                }
+              }
+            } catch (e2) {
+              // Fetch also failed, skip
+            }
+          }
         }
       }
-    } catch (e) {
-      // Stylesheet access error
+    } catch (e) {}
+
+    // Strategy 3: Check inline <style> tags
+    const styleTags = document.querySelectorAll('style');
+    for (const tag of styleTags) {
+      const parsed = parseFontFacesFromCSS(tag.textContent, window.location.href);
+      for (const font of parsed) {
+        if (!seen.has(font.key)) {
+          seen.add(font.key);
+          fonts.push(font);
+        }
+      }
     }
 
     return fonts;
+  }
+
+  /**
+   * Parse @font-face blocks from raw CSS text
+   */
+  function parseFontFacesFromCSS(cssText, baseUrl) {
+    const fonts = [];
+    const regex = /@font-face\s*\{([^}]+)\}/gi;
+    let match;
+
+    while ((match = regex.exec(cssText)) !== null) {
+      const block = match[1];
+      const font = parseFontFaceBlock(block, baseUrl);
+      if (font) fonts.push(font);
+    }
+
+    return fonts;
+  }
+
+  function parseFontFaceBlock(block, baseUrl) {
+    const familyMatch = block.match(/font-family\s*:\s*["']?([^"';]+)["']?/i);
+    const weightMatch = block.match(/font-weight\s*:\s*(\d+|normal|bold)/i);
+    const styleMatch = block.match(/font-style\s*:\s*(\w+)/i);
+
+    // Try woff2 first, then woff, then any url
+    let urlMatch = block.match(/url\(["']?([^"')]+\.woff2[^"')]*?)["']?\)/i);
+    if (!urlMatch) urlMatch = block.match(/url\(["']?([^"')]+\.woff[^"')]*?)["']?\)/i);
+    if (!urlMatch) urlMatch = block.match(/url\(["']?([^"')]+)["']?\)/i);
+
+    if (!familyMatch || !urlMatch) return null;
+
+    let url = urlMatch[1];
+    // Resolve relative URLs
+    if (url.startsWith('//')) url = 'https:' + url;
+    else if (url.startsWith('/')) {
+      const origin = new URL(baseUrl).origin;
+      url = origin + url;
+    } else if (!url.startsWith('http')) {
+      const base = baseUrl.substring(0, baseUrl.lastIndexOf('/') + 1);
+      url = base + url;
+    }
+
+    const family = familyMatch[1].trim();
+    const weight = weightMatch ? weightMatch[1] : '400';
+    const style = styleMatch ? styleMatch[1] : 'normal';
+    const format = url.includes('.woff2') ? 'woff2' : (url.includes('.woff') ? 'woff' : 'ttf');
+
+    return {
+      family, weight, style, url, format,
+      key: `${family}-${weight}-${style}`
+    };
+  }
+
+  function parseFontFaceRule(cssText) {
+    return parseFontFaceBlock(cssText, window.location.href);
   }
 
   /**
@@ -322,6 +390,7 @@ const SnappedExtractor = (function() {
   async function downloadFontAsBase64(url) {
     try {
       const response = await fetch(url);
+      if (!response.ok) return null;
       const blob = await response.blob();
       return new Promise((resolve) => {
         const reader = new FileReader();
@@ -354,7 +423,7 @@ const SnappedExtractor = (function() {
     elements.forEach(collectFonts);
 
     // Get all available @font-face declarations
-    const allFonts = extractFonts();
+    const allFonts = await extractFonts();
 
     // Filter to only fonts used in the selection
     const usedFonts = allFonts.filter(f => usedFamilies.has(f.family));
