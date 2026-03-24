@@ -40,6 +40,7 @@ The Figma REST API is read-only for file contents, so a companion Figma Plugin (
 - ✅ 2026-03-24 07:40 — v0.4: Font extraction added. Scans @font-face rules, downloads woff2 files, embeds as base64 in JSON. Figma plugin shows Install button per font family.
 - ✅ 2026-03-24 07:45 — v0.4.1: Fixed cross-origin font extraction. Fetches CSS text directly instead of relying on CSSOM. Netflix Sans now captured successfully.
 - ✅ 2026-03-24 07:55 — v0.4.2: Captures ALL page fonts, not just fonts used in selected elements. Netflix Sans installed to ~/Library/Fonts/ via woff2→ttf conversion.
+- ✅ 2026-03-24 08:10 — v0.4.3: Redesigned status bar and overlays to match Apple native UI. Frosted glass, system blue, symbol glyphs, pill buttons.
 
 ## Case Study
 
