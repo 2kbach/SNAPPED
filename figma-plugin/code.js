@@ -83,7 +83,8 @@ function parseBoxShadow(cssShadow) {
       offset: { x: nums[0] || 0, y: nums[1] || 0 },
       radius: nums[2] || 0,
       spread: nums[3] || 0,
-      visible: true
+      visible: true,
+      blendMode: 'NORMAL'
     });
   }
 
