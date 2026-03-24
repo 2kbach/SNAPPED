@@ -42,11 +42,24 @@ const SnappedExtractor = (function() {
   /**
    * Extract using a shared offset (so multiple elements keep correct relative positions)
    */
-  function extractWithOffset(element, sourceUrl, sharedOffset) {
-    return walkNode(element, sharedOffset, 0);
+  function extractWithOffset(element, sourceUrl, sharedOffset, zoomFactor) {
+    return walkNode(element, sharedOffset, 0, zoomFactor || 1);
   }
 
-  function walkNode(element, rootOffset, depth) {
+  /**
+   * Detect browser zoom level by comparing getBoundingClientRect to offsetWidth
+   */
+  function detectZoom() {
+    const testEl = document.documentElement;
+    const rect = testEl.getBoundingClientRect();
+    const offsetW = testEl.offsetWidth;
+    if (offsetW > 0 && rect.width > 0) {
+      return rect.width / offsetW;
+    }
+    return 1;
+  }
+
+  function walkNode(element, rootOffset, depth, zoomFactor) {
     if (depth > MAX_DEPTH) return null;
     if (!element || element.nodeType !== Node.ELEMENT_NODE) return null;
 
@@ -58,6 +71,7 @@ const SnappedExtractor = (function() {
 
     const rect = element.getBoundingClientRect();
     const computed = window.getComputedStyle(element);
+    const z = zoomFactor || 1;
 
     // Skip invisible elements with no dimensions
     if (rect.width === 0 && rect.height === 0 && computed.overflow === 'hidden') {
@@ -67,10 +81,10 @@ const SnappedExtractor = (function() {
     const node = {
       tag: element.tagName.toLowerCase(),
       bounds: {
-        x: rect.left - rootOffset.x,
-        y: rect.top - rootOffset.y,
-        width: rect.width,
-        height: rect.height
+        x: (rect.left / z) - rootOffset.x,
+        y: (rect.top / z) - rootOffset.y,
+        width: rect.width / z,
+        height: rect.height / z
       },
       computedStyles: extractStyles(computed),
       children: [],
@@ -113,8 +127,8 @@ const SnappedExtractor = (function() {
     }
 
     // Handle pseudo-elements
-    const beforeStyles = extractPseudoElement(element, '::before', rootOffset, rect);
-    const afterStyles = extractPseudoElement(element, '::after', rootOffset, rect);
+    const beforeStyles = extractPseudoElement(element, '::before', rootOffset, rect, z);
+    const afterStyles = extractPseudoElement(element, '::after', rootOffset, rect, z);
     if (beforeStyles) node.children.push(beforeStyles);
 
     // Extract child nodes
@@ -133,7 +147,7 @@ const SnappedExtractor = (function() {
             // Create a synthetic text node
             node.children.push({
               tag: '#text',
-              bounds: getTextBounds(child, rootOffset),
+              bounds: getTextBounds(child, rootOffset, z),
               computedStyles: extractStyles(computed),
               children: [],
               images: [],
@@ -143,7 +157,7 @@ const SnappedExtractor = (function() {
           }
         }
       } else if (child.nodeType === Node.ELEMENT_NODE) {
-        const childNode = walkNode(child, rootOffset, depth + 1);
+        const childNode = walkNode(child, rootOffset, depth + 1, zoomFactor);
         if (childNode) {
           node.children.push(childNode);
         }
@@ -170,7 +184,7 @@ const SnappedExtractor = (function() {
     return styles;
   }
 
-  function extractPseudoElement(element, pseudo, rootOffset, parentRect) {
+  function extractPseudoElement(element, pseudo, rootOffset, parentRect, zoomFactor) {
     const computed = window.getComputedStyle(element, pseudo);
     const content = computed.content;
     const display = computed.display;
@@ -207,13 +221,14 @@ const SnappedExtractor = (function() {
     let textContent = isEmptyContent ? null : content.replace(/^["']|["']$/g, '');
     if (textContent === '') textContent = null;
 
+    const z = zoomFactor || 1;
     return {
       tag: pseudo,
       bounds: {
-        x: parentRect.left - rootOffset.x,
-        y: parentRect.top - rootOffset.y,
-        width: parseFloat(computed.width) || 0,
-        height: parseFloat(computed.height) || 0
+        x: (parentRect.left / z) - rootOffset.x,
+        y: (parentRect.top / z) - rootOffset.y,
+        width: (parseFloat(computed.width) || 0) / z,
+        height: (parseFloat(computed.height) || 0) / z
       },
       computedStyles: extractStyles(computed),
       children: [],
@@ -223,15 +238,16 @@ const SnappedExtractor = (function() {
     };
   }
 
-  function getTextBounds(textNode, rootOffset) {
+  function getTextBounds(textNode, rootOffset, z) {
+    z = z || 1;
     const range = document.createRange();
     range.selectNodeContents(textNode);
     const rect = range.getBoundingClientRect();
     return {
-      x: rect.left - rootOffset.x,
-      y: rect.top - rootOffset.y,
-      width: rect.width,
-      height: rect.height
+      x: (rect.left / z) - rootOffset.x,
+      y: (rect.top / z) - rootOffset.y,
+      width: rect.width / z,
+      height: rect.height / z
     };
   }
 
@@ -252,5 +268,5 @@ const SnappedExtractor = (function() {
     });
   }
 
-  return { extract, extractWithOffset, imageToBase64 };
+  return { extract, extractWithOffset, detectZoom, imageToBase64 };
 })();
