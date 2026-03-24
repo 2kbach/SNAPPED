@@ -447,5 +447,29 @@ const SnappedExtractor = (function() {
     return fontsWithData;
   }
 
-  return { extract, extractWithOffset, detectZoom, imageToBase64, extractUsedFonts };
+  /**
+   * Extract ALL fonts on the page (not just ones used in selection)
+   */
+  async function extractAllFonts() {
+    const allFonts = await extractFonts();
+
+    const fontsWithData = [];
+    for (const font of allFonts) {
+      const dataUrl = await downloadFontAsBase64(font.url);
+      if (dataUrl) {
+        fontsWithData.push({
+          family: font.family,
+          weight: font.weight,
+          style: font.style,
+          format: font.format,
+          dataUrl: dataUrl,
+          originalUrl: font.url
+        });
+      }
+    }
+
+    return fontsWithData;
+  }
+
+  return { extract, extractWithOffset, detectZoom, imageToBase64, extractUsedFonts, extractAllFonts };
 })();

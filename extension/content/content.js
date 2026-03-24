@@ -213,8 +213,8 @@
     clearAllSelections();
     cleanup();
 
-    // Extract and download fonts used in the selection
-    const fonts = await SnappedExtractor.extractUsedFonts(extractions);
+    // Extract and download ALL fonts on the page
+    const fonts = await SnappedExtractor.extractAllFonts();
 
     const payload = {
       sourceUrl: sourceUrl,
