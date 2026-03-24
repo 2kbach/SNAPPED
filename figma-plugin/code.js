@@ -200,7 +200,9 @@ async function buildDesign(data) {
 
   // Create a top-level frame for the entire capture
   const rootFrame = figma.createFrame();
-  rootFrame.name = `SNAPPED: ${pageTitle || sourceUrl}`;
+  const now = new Date();
+  const stamp = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  rootFrame.name = `SNAPPED: ${pageTitle || sourceUrl} — ${stamp}`;
   rootFrame.fills = [{ type: 'SOLID', color: { r: 0.07, g: 0.07, b: 0.11 } }];
 
   // Calculate total bounds across all elements
