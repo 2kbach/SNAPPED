@@ -303,7 +303,7 @@ async function buildNode(node, offsetX, offsetY) {
   const isTextNode = node.textContent && node.children.length === 0;
 
   if (isTextNode) {
-    return await buildTextNode(node, x, y, w, h);
+    return await buildTextNode(node, x, y, w, h, offsetX, offsetY);
   }
 
   // Create a frame for container nodes
@@ -369,7 +369,19 @@ async function buildNode(node, offsetX, offsetY) {
 
 // ── Text Node Builder ──────────────────────────────────────
 
-async function buildTextNode(node, x, y, w, h) {
+async function buildTextNode(node, x, y, w, h, parentOffsetX, parentOffsetY) {
+  // Use precise textBounds if available (accounts for line-height spacing)
+  if (node.textBounds && parentOffsetX !== undefined) {
+    x = node.textBounds.x - parentOffsetX;
+    y = node.textBounds.y - parentOffsetY;
+    w = node.textBounds.width;
+    h = node.textBounds.height;
+  } else if (node.textBounds) {
+    x = node.textBounds.x;
+    y = node.textBounds.y;
+    w = node.textBounds.width;
+    h = node.textBounds.height;
+  }
   const s = node.computedStyles;
   const text = node.textContent;
   if (!text) return null;

@@ -143,6 +143,8 @@ const SnappedExtractor = (function() {
           // wrap it as a text span node
           if (childNodes.length === 1 || (childNodes.length <= 3 && !hasElementChildren(element))) {
             node.textContent = text;
+            // Capture precise text bounds (not element bounds) for accurate positioning
+            node.textBounds = getTextBounds(child, rootOffset, z);
           } else {
             // Create a synthetic text node
             node.children.push({
