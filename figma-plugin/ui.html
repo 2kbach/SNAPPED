@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+      font-size: 12px;
+      color: #333;
+      padding: 16px;
+      background: #fff;
+    }
+    h1 { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+    .subtitle { color: #888; margin-bottom: 16px; font-size: 11px; }
+    textarea {
+      width: 100%;
+      height: 200px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 10px;
+      font-family: 'SF Mono', Monaco, monospace;
+      font-size: 10px;
+      resize: vertical;
+      outline: none;
+    }
+    textarea:focus { border-color: #4A90FF; }
+    .btn {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 10px;
+      transition: background 0.15s;
+    }
+    .btn-primary { background: #4A90FF; color: #fff; }
+    .btn-primary:hover { background: #357AE8; }
+    .btn-primary:disabled { background: #ccc; cursor: not-allowed; }
+    .btn-file { background: #f0f4ff; color: #4A90FF; border: 1px dashed #4A90FF; }
+    .btn-file:hover { background: #e0ecff; }
+    .status {
+      margin-top: 10px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 11px;
+      display: none;
+    }
+    .status.info { background: #f0f4ff; color: #4A90FF; display: block; }
+    .status.success { background: #f0fff4; color: #22c55e; display: block; }
+    .status.error { background: #fff0f0; color: #e53e3e; display: block; }
+    .or-divider {
+      text-align: center;
+      color: #aaa;
+      margin: 10px 0;
+      font-size: 11px;
+    }
+    input[type="file"] { display: none; }
+    .progress { font-weight: 600; }
+  </style>
+</head>
+<body>
+  <h1>SNAPPED</h1>
+  <p class="subtitle">Paste JSON from the Safari extension, or load the file.</p>
+
+  <button class="btn btn-file" id="btn-file" onclick="document.getElementById('file-input').click()">
+    Load snapped-latest.json from Downloads
+  </button>
+  <input type="file" id="file-input" accept=".json">
+
+  <div class="or-divider">— or paste JSON —</div>
+
+  <textarea id="json-input" placeholder="Paste SNAPPED JSON here..."></textarea>
+
+  <button class="btn btn-primary" id="btn-build">Build in Figma</button>
+
+  <div class="status" id="status"></div>
+
+  <script>
+    const jsonInput = document.getElementById('json-input');
+    const btnBuild = document.getElementById('btn-build');
+    const btnFile = document.getElementById('btn-file');
+    const fileInput = document.getElementById('file-input');
+    const status = document.getElementById('status');
+
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        jsonInput.value = ev.target.result;
+        btnFile.textContent = '✓ ' + file.name;
+        showStatus('File loaded. Click "Build in Figma" to create the design.', 'info');
+      };
+      reader.readAsText(file);
+    });
+
+    btnBuild.addEventListener('click', () => {
+      const text = jsonInput.value.trim();
+      if (!text) {
+        showStatus('Please paste JSON or load a file first.', 'error');
+        return;
+      }
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        showStatus('Invalid JSON: ' + e.message, 'error');
+        return;
+      }
+
+      if (!data.elements || !data.elements.length) {
+        showStatus('No elements found in the JSON data.', 'error');
+        return;
+      }
+
+      btnBuild.disabled = true;
+      btnBuild.textContent = 'Building...';
+      showStatus('Creating ' + data.elements.length + ' element(s) in Figma...', 'info');
+
+      parent.postMessage({ pluginMessage: { type: 'build', data: data } }, '*');
+    });
+
+    window.onmessage = (event) => {
+      const msg = event.data.pluginMessage;
+      if (!msg) return;
+
+      if (msg.type === 'progress') {
+        showStatus(msg.message, 'info');
+      } else if (msg.type === 'done') {
+        showStatus('Done! Created ' + msg.count + ' element(s) from ' + msg.sourceUrl, 'success');
+        btnBuild.disabled = false;
+        btnBuild.textContent = 'Build in Figma';
+      } else if (msg.type === 'error') {
+        showStatus('Error: ' + msg.message, 'error');
+        btnBuild.disabled = false;
+        btnBuild.textContent = 'Build in Figma';
+      }
+    };
+
+    function showStatus(message, type) {
+      status.textContent = message;
+      status.className = 'status ' + type;
+    }
+  </script>
+</body>
+</html>
