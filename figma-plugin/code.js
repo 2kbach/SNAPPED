@@ -263,13 +263,32 @@ async function buildNode(node, offsetX, offsetY) {
 
   const s = node.computedStyles;
   const b = node.bounds;
-  const w = Math.max(b.width, 1);
-  const h = Math.max(b.height, 1);
   const x = b.x - offsetX;
   const y = b.y - offsetY;
 
   // Skip zero-size nodes
   if (b.width === 0 && b.height === 0) return null;
+
+  // Handle divider lines: zero-height elements with a border-top
+  if (b.height === 0 && b.width > 0) {
+    const btw = parseFloat(s.borderTopWidth) || 0;
+    if (btw > 0) {
+      const borderColor = parseColor(s.borderTopColor);
+      if (borderColor && !isTransparent(borderColor)) {
+        const line = figma.createRectangle();
+        line.name = node.tag === '::before' || node.tag === '::after' ? 'divider' : node.tag;
+        line.x = x;
+        line.y = y;
+        line.resize(b.width, btw);
+        line.fills = [{ type: 'SOLID', color: { r: borderColor.r, g: borderColor.g, b: borderColor.b }, opacity: borderColor.a }];
+        line.strokes = [];
+        return line;
+      }
+    }
+  }
+
+  const w = Math.max(b.width, 1);
+  const h = Math.max(b.height, 1);
 
   // Handle SVG
   if (node.svgContent) {
@@ -321,16 +340,26 @@ async function buildNode(node, offsetX, offsetY) {
       applyOpacity(frame, s);
       frame.clipsContent = false;
 
-      // Position text inside frame accounting for padding
+      // Create text directly inside the badge frame
       const padTop = parseFloat(s.paddingTop) || 0;
       const padLeft = parseFloat(s.paddingLeft) || 0;
-      const innerW = w - padLeft - (parseFloat(s.paddingRight) || 0);
-      const textChild = await buildTextNode(node, padLeft, padTop, Math.max(innerW, 1), 0);
-      if (textChild) {
-        // Let text auto-size height inside the badge frame
-        textChild.textAutoResize = 'WIDTH_AND_HEIGHT';
-        frame.appendChild(textChild);
+      const families = parseFontFamilies(s.fontFamily);
+      const fStyle = fontWeightToStyle(s.fontWeight, s.fontStyle);
+      const font = await loadFont(families, fStyle);
+      const badgeText = figma.createText();
+      badgeText.fontName = font;
+      badgeText.characters = node.textContent;
+      badgeText.fontSize = parseFloat(s.fontSize) || 14;
+      const textColor = parseColor(s.color);
+      if (textColor) {
+        badgeText.fills = [{ type: 'SOLID', color: { r: textColor.r, g: textColor.g, b: textColor.b } }];
+        if (textColor.a < 1) badgeText.opacity = textColor.a;
       }
+      badgeText.textAutoResize = 'WIDTH_AND_HEIGHT';
+      badgeText.x = padLeft;
+      badgeText.y = padTop;
+      badgeText.name = 'text: "' + node.textContent.substring(0, 30) + '"';
+      frame.appendChild(badgeText);
       return frame;
     }
 
