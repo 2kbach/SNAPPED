@@ -373,9 +373,9 @@ async function buildTextNode(node, x, y, w, h, parentOffsetX, parentOffsetY) {
   // Use precise textBounds Y position only (keeps element width to prevent wrapping)
   // Add 2px to compensate for Figma's internal text leading vs browser Range bounds
   if (node.textBounds && parentOffsetX !== undefined) {
-    y = (node.textBounds.y - parentOffsetY) + 2;
+    y = (node.textBounds.y - parentOffsetY) - 2;
   } else if (node.textBounds) {
-    y = node.textBounds.y + 2;
+    y = node.textBounds.y - 2;
   }
   const s = node.computedStyles;
   const text = node.textContent;
